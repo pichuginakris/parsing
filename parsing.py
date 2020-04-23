@@ -4,18 +4,20 @@ from bs4 import BeautifulSoup
 
 
 def write_csv_header():  # обновляет файл, добавляя в него заголовки
-    with open('work23.csv', 'w', encoding='utf8') as f:
+    with open('work_0.csv', 'w', encoding='utf8', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(('Город', 'Категория', 'ФИО / имя организации', 'Номер телефона', 'Описание профиля',
-                         'Адрес', 'Наименование услуги', 'Цена за услугу', 'Описание услуги'))
+        writer.writerow(('Город', 'Категория', 'ФИО / имя организации', 'Номер телефона', 'Ссылка на профиль',
+                         'Описание профиля', 'Адрес', 'Услуга', 'Вконтакте', 'Инстаграм', 'Профи', 'Ютуб', 'Юдо',
+                         'Одноклассники'))
 
 
 def write_csv(data):  # записывает данные в файл csv
-    print(data)
-    with open('work23.csv', 'a', encoding='utf8') as f:
+    with open('work_0.csv', 'a', encoding='utf8', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow((data['city'], data['category'], data['FIO'], data['phone_number'], data['description'],
-                         data['address'], data['service_name'], data['price_for_service'], data['service_description']))
+        row = (data['city'], data['category'], data['FIO'], data['phone_number'], data['personal_link'],
+                         data['description'], data['address'], data['services'], data['vk'], data['instagram'],
+                         data['profi'], data['youtube'], data['youdo'], data['ok'])
+        writer.writerow(row)
 
 
 def cookie():  # хранит сведения о куки с сайта Яндекс.услуги
@@ -45,7 +47,7 @@ def get_number(worker_id):  # получает номер телефона сп�
     return num_object
 
 
-def find_all_workers(url, category, pattern):
+def find_all_workers(url, category, pattern):  # находит количество всех работников в данной категории
     response = requests.get(url)
     j_obj = response.json()
     all_workers = j_obj['search']['params']['pagination']['totalItems']  # количество всех работников
@@ -56,7 +58,6 @@ def find_all_workers(url, category, pattern):
     i = 0  # номер страницы
     for i in range(iteration):
         url = pattern.format(str(i))
-        print(url)
         get_data(url, category)
 
 
@@ -67,13 +68,12 @@ def get_data(url, job_category):  # собирает всю информацию
     workers_id = j_obj['search']['workerIds']   # список айди всех работников со страницы
     for worker_id in workers_id:
         numb_obj = get_number(worker_id)
-        print(numb_obj)
         phone_number = numb_obj['data']['phone']
         description = ''
         try:  # сбор описания профила и разбиения описание на отдельные строки
             descriptions = j_obj['workers']['items'][str(worker_id)]['personalInfo']['description'].split('\n')
         except:
-            descriptions = 'undefined'
+            descriptions = 'отсутсвует'
         index = 0  # индекс строки из списка описаний
         while True:  # собирает элементы из списка descriptions в одну строку description
             try:
@@ -84,6 +84,37 @@ def get_data(url, job_category):  # собирает всю информацию
 
         description = description.replace('[', '').replace(']', '')  # удаляет [] из описания
         display_name = j_obj['workers']['items'][str(worker_id)]['personalInfo']['displayName']  # ФИО / название
+        seoname = j_obj['workers']['items'][str(worker_id)]['seoname']  # айди для получения персональной ссылки
+        social_links = j_obj['workers']['items'][str(worker_id)]['personalInfo']['socialLinks']
+        try:
+            vk_link = social_links['vk']
+        except:
+            vk_link = 'отсутствует'
+        try:
+            profi_link = social_links['profi']
+        except:
+            profi_link = 'отсутствует'
+        try:
+            facebool_link = social_links['facebook']
+        except:
+            facebool_link = 'отсутствует'
+        try:
+            instagram_link = social_links['instagram']
+        except:
+            instagram_link = 'отсутствует'
+        try:
+            youdo_link = social_links['youdo']
+        except:
+            youdo_link = 'отсутствует'
+        try:
+            youtube_link = social_links['youdo']
+        except:
+            youtube_link = 'отсутствует'
+        try:
+            ok_link = social_links['ok']
+        except:
+            ok_link = 'отсутствует'
+        personal_link = 'https://yandex.ru/uslugi/profile/' + seoname
         city_name = []
         i = 0  # счетчик адреса из списка
         address_list = []
@@ -97,55 +128,43 @@ def get_data(url, job_category):  # собирает всю информацию
                 break
         if city_name == []:  # если специалист не указал город в специальной графе, но поставил пометку на карте
             city_name = j_obj['workers']['items'][str(worker_id)]['personalInfo']['areasList'][0]['name']
-        try:  # сбор описания первой услуги
-            service_description = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][0]['attrs']['description']
-        except:  # если описание отсутствует
-            service_description = ''
-        try:  # наименование первой услуги
-            service_name = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][0]['attrs']['name']
-        except:  # если специалист не добавил первую услугу
-            service_name = ''
-        try:  # цена за первую услугу
-            price_for_service = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][0]['attrs']['price']
-        except:
-            price_for_service = ''
+        k = 1  # счетчик количества услуг
+        service_list = []
+        while True:  # пока не кончится лист услуг
+            try:  # проверка на наличие наименования услуги
+                service_name = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][k-1]['attrs']['name']
+            except:  # если нет наименования услуги, то нет самой услуги
+                break
+            try:
+                service_description = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][k-1]['attrs']['description']
+            except:
+                service_description = 'отсутствует'
+            try:
+                price_for_service = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][k-1]['attrs']['price']
+            except:
+                price_for_service = 'отсутствует'
+            service_list.append('Услуга №' + str(k) + ': ' + service_name)
+            service_list.append('Цена за услугу: ' + str(price_for_service))
+            service_list.append('Описание услуги: ' + service_description)
+            k = k + 1
         data = {'city': city_name,
                 'category': category,
                 'FIO': display_name,
                 'phone_number': phone_number,
+                'personal_link':personal_link,
                 'description': description,
                 'address': address_list,
-                'service_name': service_name,
-                'price_for_service': price_for_service,
-                'service_description': service_description
+                'services':  service_list,
+                'vk': vk_link,
+                'instagram': instagram_link,
+                'profi': profi_link,
+                'youtube': youtube_link,
+                'youdo': youdo_link,
+                'facebook': facebool_link,
+                'ok': ok_link
                 }
-        write_csv(data)  # запись информации о специалисте, включающее первую услугу
-        k = 1  # счетчик количества услуг
-        while True:  # пока не кончится лист услуг
-            try:  # проверка на наличие наименования услуги
-                service_name = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][k]['attrs']['name']
-            except:  # если нет наименования услуги, то нет самой услуги
-                break
-            try:
-                service_description = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][k]['attrs']['description']
-            except:
-                service_description = ''
-            try:
-                price_for_service = j_obj['workers']['items'][str(worker_id)]['occupations'][0]['specializations'][0]['services'][k]['attrs']['price']
-            except:
-                price_for_service = ''
-            data = {'city': city_name,
-                    'category': category,
-                    'FIO': display_name,
-                    'phone_number': phone_number,
-                    'description': '',
-                    'address': '',
-                    'service_name': service_name,
-                    'price_for_service': price_for_service,
-                    'service_description': service_description
-                    }
-            write_csv(data)  # запись всех последующих услуг
-            k = k+1
+        print(data)
+        write_csv(data)  # запись всех последующих услуг
 
 
 def main():
@@ -155,17 +174,17 @@ def main():
     url = 'https://yandex.ru/uslugi/2-saint-petersburg/category?rubric=%2Frepetitory-i-obucenie'
     html = requests.get(url, headers=user_agents, cookies=cookies).text
     soup = BeautifulSoup(html, 'lxml')
-    reference_headers = soup.find('div', class_='HomeRubricMenu-RubricGroup').find_all('a')  # нахождение заголовков
+    reference_headers = soup.find('div', class_='HomeRubricMenu-RubricGroup').find_all('a')  # нахождение заголовков категорий
     for reference_header in reference_headers:
         try:  # нахождение категории из топа услуг
             category = reference_header.find('b').text
         except:
             category = 'None'
-        if category == 'None':
-            category = reference_header.find('span').text  # нахождение категории из остального списка услуг
+        if category == 'None':  # нахождение категории из остального списка услуг
+            category = reference_header.find('span').text
         reference = reference_header.get('href')[7:]
-        pattern = 'https://yandex.ru/uslugi/api' + reference + '?msp=no&p={}'
-        first_page = pattern.format(str(0))
+        pattern = 'https://yandex.ru/uslugi/api' + reference + '?msp=no&p={}'  # пример: https://yandex.ru/uslugi/api/2-saint-petersburg/category/repetitoryi-i-obuchenie/anglijskij-yazyik--2276?msp=no&p={}
+        first_page = pattern.format(str(0))  # для первой страницы Английского языка выдаст https://yandex.ru/uslugi/api/2-saint-petersburg/category/repetitoryi-i-obuchenie/anglijskij-yazyik--2276?msp=no&p=0
         find_all_workers(first_page, category, pattern)
 
 
