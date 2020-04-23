@@ -13,7 +13,12 @@ def write_sort(sorted_list):  # записывает в файл отсорти�
     write_csv_header()
     with open('work.csv', 'a', encoding='utf8', newline='') as file:
         i = 0
+
         while i < (len(sorted_list)-1):
+            services = str(sorted_list[i]['Услуга'].split('\\n'))  # удаление лишних знаков в услугах
+            services = services.replace('[', '').replace(']', '').replace('\'', '').replace('"', '')
+            services = services.replace('\,', '').replace('\Ц', 'Ц').replace('\У', 'У').replace('\О', 'О')
+            address = str(sorted_list[i]['Адрес']).replace('[', '').replace(']', '')
             category = sorted_list[i]['Категория']
             while sorted_list[i]['ФИО / имя организации'] == sorted_list[i+1]['ФИО / имя организации']:  # проверяет повтор имени в списке
                 if sorted_list[i]['Категория'] != sorted_list[i+1]['Категория']:  # записывает новые категории для специалиста в список
@@ -23,7 +28,7 @@ def write_sort(sorted_list):  # записывает в файл отсорти�
             writer.writerow(
                 (sorted_list[i]['Город'], str(category), sorted_list[i]['ФИО / имя организации'],
                  sorted_list[i]['Номер телефона'], sorted_list[i]['Ссылка на профиль'],
-                 sorted_list[i]['Описание профиля'], sorted_list[i]['Адрес'], sorted_list[i]['Услуга'].split('\\n'),
+                 sorted_list[i]['Описание профиля'], address, services,
                  sorted_list[i]['Вконтакте'], sorted_list[i]['Инстаграм'],
                  sorted_list[i]['Профи'], sorted_list[i]['Ютуб'], sorted_list[i]['Юдо'],
                  sorted_list[i]['Одноклассники']))
@@ -32,14 +37,14 @@ def write_sort(sorted_list):  # записывает в файл отсорти�
         writer.writerow(
             (sorted_list[i]['Город'], sorted_list[i]['Категория'], sorted_list[i]['ФИО / имя организации'],
              sorted_list[i]['Номер телефона'], sorted_list[i]['Ссылка на профиль'],
-             sorted_list[i]['Описание профиля'], sorted_list[i]['Адрес'], sorted_list[i]['Услуга'],
+             sorted_list[i]['Описание профиля'],address, services,
              sorted_list[i]['Вконтакте'], sorted_list[i]['Инстаграм'],
              sorted_list[i]['Профи'], sorted_list[i]['Ютуб'], sorted_list[i]['Юдо'],
              sorted_list[i]['Одноклассники']))
 
 
 def read_csv():  # сортирует полученный список по имени и городу
-    with open('work_0.csv', encoding='utf8') as f:
+    with open('workT.csv', encoding='utf8') as f:
         reader = csv.DictReader(f)
         sorted_list = sorted(reader, key=lambda row: (row['ФИО / имя организации']), reverse=False)
         sorted_list = sorted(sorted_list, key=lambda row: (row['Город']), reverse=False)
