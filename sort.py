@@ -44,7 +44,7 @@ def write_sort(sorted_list):  # записывает в файл отсорти�
 
 
 def read_csv():  # сортирует полученный список по имени и городу
-    with open('workT.csv', encoding='utf8') as f:
+    with open('work_0.csv', encoding='utf8') as f:
         reader = csv.DictReader(f)
         sorted_list = sorted(reader, key=lambda row: (row['ФИО / имя организации']), reverse=False)
         sorted_list = sorted(sorted_list, key=lambda row: (row['Город']), reverse=False)
